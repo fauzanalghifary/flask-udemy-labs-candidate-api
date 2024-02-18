@@ -1,0 +1,14 @@
+
+### Get candidate by id
+GET {{BASE_URL}}/api/candidate/92aa1ae1-7862-4f92-b542-793b9e938ebf
+
+### Create a candidate
+POST {{BASE_URL}}/api/candidate
+Content-Type: application/json
+
+{
+    "full_name": "Barry Allen",
+    "birth_date": "1996-03-31",
+    "email": "barrya@mail.com",
+    "expected_salary": 90800
+}

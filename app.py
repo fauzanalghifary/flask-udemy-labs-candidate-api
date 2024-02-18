@@ -5,7 +5,7 @@ import uuid
 import datetime
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///carcatalog.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
 db = SQLAlchemy(app)
 
 # The lab is behind a http proxy, so it's not aware of the fact that it should use https.
