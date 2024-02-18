@@ -4,11 +4,12 @@ GET {{BASE_URL}}/api/candidate/92aa1ae1-7862-4f92-b542-793b9e938ebf
 
 ### Create a candidate
 POST {{BASE_URL}}/api/candidate
+api-signature: 8ed873c045f1d78b2822f93dc1a5af4aa9500fb83d3703c9ae754e1f04726a16
 Content-Type: application/json
 
 {
-    "full_name": "Barry Allen",
-    "birth_date": "1996-03-31",
-    "email": "barrya@mail.com",
-    "expected_salary": 90800
+    "full_name": "Bruce Wayne",
+    "birth_date": "1998-08-30",
+    "email": "brucew@mail.com",
+    "expected_salary": 90010
 }

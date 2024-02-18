@@ -3,8 +3,12 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 import uuid
 import datetime
+from functools import wraps
+import hmac
+import hashlib
 
 app = Flask(__name__)
+app.config['HMAC_SECRET_KEY'] = 'pyhtonflaskhmacsecretkey'
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
 db = SQLAlchemy(app)
 
@@ -57,8 +61,41 @@ with app.app_context():
     db.create_all()
 
 
+def hmac_validator(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        client_hmac = None
+        if 'api-signature' in request.headers:
+            client_hmac = request.headers['api-signature']
+        if not client_hmac:
+            return jsonify({'messages': 'Missing headers api-signature'}), 401
+        try:
+            user_data = request.get_json()
+            messages = str(
+                request.method + '-' +
+                request.path.lstrip('/') + '-' +
+                user_data['full_name'] + '-' +
+                user_data['birth_date'] + '-' +
+                user_data['email'] + '-' +
+                str(user_data['expected_salary'])
+            ).lower()
+            hmac_verifier = hmac.new(app.config['HMAC_SECRET_KEY'].encode('utf-8'), messages.encode('utf-8'),
+                                     hashlib.sha256)
+            is_verified = hmac.compare_digest(request.headers['api-signature'], hmac_verifier.hexdigest())
+        except:
+            return jsonify({'message': 'Invalid api-signature'}), 400
+        return f(is_verified, *args, **kwargs)
+
+    return decorated
+
+
 @app.route('/api/candidate', methods=['POST'])
-def create_candidate():
+@hmac_validator
+def create_candidate(is_verified):
+    if not is_verified:
+        api_response = {'message': 'Invalid api-signature'}
+        return jsonify(api_response), 400
+
     data = request.get_json()
 
     candidate_id = str(uuid.uuid4())
