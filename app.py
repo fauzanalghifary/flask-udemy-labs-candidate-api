@@ -6,11 +6,18 @@ import datetime
 from functools import wraps
 import hmac
 import hashlib
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 app.config['HMAC_SECRET_KEY'] = 'pyhtonflaskhmacsecretkey'
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
 db = SQLAlchemy(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+)
+
 
 # The lab is behind a http proxy, so it's not aware of the fact that it should use https.
 # We use ProxyFix to enable it: https://flask.palletsprojects.com/en/2.0.x/deploying/wsgi-standalone/#proxy-setups
@@ -90,6 +97,7 @@ def hmac_validator(f):
 
 
 @app.route('/api/candidate', methods=['POST'])
+@limiter.limit("5/minute")
 @hmac_validator
 def create_candidate(is_verified):
     if not is_verified:
@@ -111,6 +119,7 @@ def create_candidate(is_verified):
 
 
 @app.route('/api/candidate/<candidate_id>', methods=['GET'])
+@limiter.limit("10/minute")
 def get_candidate(candidate_id):
     candidate = Candidate.query.filter_by(candidate_id=candidate_id).first()
 
