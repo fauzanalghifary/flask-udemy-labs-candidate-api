@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, request, url_for, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 import uuid
-import random
+import datetime
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///carcatalog.db"
@@ -50,3 +50,38 @@ class Candidate(db.Model):
         self.birth_date = birth_date
         self.email = email
         self.expected_salary = expected_salary
+
+
+with app.app_context():
+    db.drop_all()
+    db.create_all()
+
+
+@app.route('/api/candidate', methods=['POST'])
+def create_candidate():
+    data = request.get_json()
+
+    candidate_id = str(uuid.uuid4())
+    new_candidate = Candidate(candidate_id, data['full_name'],
+                              datetime.datetime.strptime(data['birth_date'], '%Y-%m-%d'), data['email'],
+                              data['expected_salary']
+                              )
+    db.session.add(new_candidate)
+    db.session.commit()
+
+    api_response = {'candidate_id': candidate_id}
+    return jsonify(api_response), 201
+
+
+@app.route('/api/candidate/<candidate_id>', methods=['GET'])
+def get_candidate(candidate_id):
+    candidate = Candidate.query.filter_by(candidate_id=candidate_id).first()
+
+    if not candidate:
+        api_response = {'message': 'Candidate with this ID not found!'}
+        return jsonify(api_response), 404
+
+    api_response = {
+        'candidate': {'full_name': candidate.full_name, 'birth_date': candidate.birth_date, 'email': candidate.email,
+                      'expected_salary': candidate.expected_salary}}
+    return jsonify(api_response), 200
