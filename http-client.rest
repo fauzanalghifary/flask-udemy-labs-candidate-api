@@ -1,15 +1,20 @@
 
 ### Get candidate by id
-GET {{BASE_URL}}/api/candidate/92aa1ae1-7862-4f92-b542-793b9e938ebf
+GET {{BASE_URL}}/api/candidate/1b3ec631-bd02-46ea-aded-3ec7a60a44f4
+api-jwt: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJBcnRodXIgQ3VycnkiLCJzdWIiOiJoZWFkaHVudGVyLWNhbmRpZGF0ZSIsImV4cCI6MTcwODI0ODcxMX0.0lvD3Oe1N9YIS8Rzh9CI5sie0_SV2Gp7ou8HhkwPaMg
 
 ### Create a candidate
 POST {{BASE_URL}}/api/candidate
-api-signature: 8ed873c045f1d78b2822f93dc1a5af4aa9500fb83d3703c9ae754e1f04726a16
+api-signature: dad9c9d51bdad20ba27ae4cb3d7817eb158d0598790d77a6e0d73cbfa588c073
 Content-Type: application/json
 
 {
-    "full_name": "Bruce Wayne",
-    "birth_date": "1998-08-30",
-    "email": "brucew@mail.com",
-    "expected_salary": 90010
+    "full_name": "Arthur Curry",
+    "birth_date": "1997-07-30",
+    "email": "arthurc@mail.com",
+    "expected_salary": 80000
 }
+
+### Login
+POST {{BASE_URL}}/api/auth
+Authorization: Basic YXJ0aHVyY0BtYWlsLmNvbTpiYXNpY2F1dGhrZXk=

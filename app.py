@@ -8,9 +8,12 @@ import hmac
 import hashlib
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import jwt
 
 app = Flask(__name__)
 app.config['HMAC_SECRET_KEY'] = 'pyhtonflaskhmacsecretkey'
+app.config['BASIC_SECRET_KEY'] = 'basicauthkey'
+app.config['JWT_SECRET_KEY'] = 'pyhtonflaskjwtsecretkey'
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
 db = SQLAlchemy(app)
 limiter = Limiter(
@@ -66,6 +69,8 @@ class Candidate(db.Model):
 with app.app_context():
     db.drop_all()
     db.create_all()
+    db.session.add(Candidate(str(uuid.uuid4()), 'Bruce Wayne', datetime.date(1996, 3, 10), 'brucew@gmail.com', 16000))
+    db.session.commit()
 
 
 def hmac_validator(f):
@@ -96,6 +101,25 @@ def hmac_validator(f):
     return decorated
 
 
+def token_validator(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+
+        if 'api-jwt' in request.headers:
+            token = request.headers['api-jwt']
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+
+        try:
+            is_valid_jwt = jwt.decode(token, app.config['JWT_SECRET_KEY'], 'HS256')
+        except:
+            return jsonify({'message': 'Token is invalid'}), 401
+        return f(is_valid_jwt, *args, **kwargs)
+
+    return decorated
+
+
 @app.route('/api/candidate', methods=['POST'])
 @limiter.limit("5/minute")
 @hmac_validator
@@ -120,14 +144,43 @@ def create_candidate(is_verified):
 
 @app.route('/api/candidate/<candidate_id>', methods=['GET'])
 @limiter.limit("10/minute")
-def get_candidate(candidate_id):
+@token_validator
+def get_candidate(is_valid_jwt, candidate_id):
     candidate = Candidate.query.filter_by(candidate_id=candidate_id).first()
 
     if not candidate:
         api_response = {'message': 'Candidate with this ID not found!'}
         return jsonify(api_response), 404
 
+    if not is_valid_jwt:
+        return jsonify(is_valid_jwt), 401
+
     api_response = {
         'candidate': {'full_name': candidate.full_name, 'birth_date': candidate.birth_date, 'email': candidate.email,
                       'expected_salary': candidate.expected_salary}}
     return jsonify(api_response), 200
+
+
+@app.route('/api/auth', methods=['POST'])
+def login():
+    auth = request.authorization
+
+    if not auth or not auth.username or not auth.password:
+        api_response = {'message': 'Missing authorization properties'}
+        return jsonify(api_response), 401
+
+    candidate = Candidate.query.filter_by(email=auth.username).first()
+
+    if not candidate:
+        return jsonify({'message': 'Could not verify'}), 401
+
+    if auth.password == app.config['BASIC_SECRET_KEY']:
+        token = jwt.encode(
+            {'iss': candidate.full_name,'sub': 'headhunter-candidate',
+             'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)},
+            app.config['JWT_SECRET_KEY'], 'HS256')
+        api_response = {'token': token}
+        return jsonify(api_response), 200
+
+    api_response = {'message': 'Could not verify'}
+    return jsonify(api_response), 401
